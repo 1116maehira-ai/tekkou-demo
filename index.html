@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>琉球鉄工株式会社</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@600;700&display=swap" rel="stylesheet">
+<!-- Supabase JS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --red: #C8001E;
+    --red-dark: #9A0016;
+    --black: #111111;
+    --gray-dark: #333333;
+    --gray-mid: #666666;
+    --gray-light: #F5F5F5;
+    --white: #FFFFFF;
+    --nav-h: 64px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Noto Sans JP', sans-serif; color: var(--black); background: var(--white); overflow-x: hidden; }
+
+  /* ローディング */
+  .loading-overlay {
+    position: fixed; inset: 0; background: white;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999; transition: opacity 0.4s;
+  }
+  .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+  .loading-spinner {
+    width: 40px; height: 40px;
+    border: 3px solid #eee;
+    border-top-color: var(--red);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: var(--nav-h); background: var(--white);
+    border-bottom: 3px solid var(--red);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; z-index: 1000;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+  .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; cursor: pointer; }
+  .nav-logo-mark {
+    width: 36px; height: 36px; background: var(--red);
+    display: flex; align-items: center; justify-content: center;
+    clip-path: polygon(0 0, 100% 0, 100% 75%, 85% 100%, 0 100%);
+  }
+  .nav-logo-mark span { color: white; font-family: 'Oswald', sans-serif; font-size: 18px; font-weight: 700; padding-bottom: 4px; }
+  .nav-logo-text { font-size: 14px; font-weight: 700; color: var(--black); line-height: 1.3; }
+  .nav-logo-text small { display: block; font-size: 10px; font-weight: 400; color: var(--gray-mid); letter-spacing: 0.05em; }
+  .nav-links { display: flex; list-style: none; }
+  .nav-links li button {
+    display: block; padding: 8px 18px; font-size: 13px; font-weight: 700;
+    color: var(--gray-dark); background: none; border: none; cursor: pointer;
+    font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.05em;
+    transition: color 0.2s; position: relative;
+  }
+  .nav-links li button.active { color: var(--red); }
+  .nav-links li button.active::after {
+    content: ''; position: absolute; bottom: -3px; left: 0; right: 0;
+    height: 3px; background: var(--red);
+  }
+  .nav-tel { font-size: 13px; font-weight: 700; color: var(--red); letter-spacing: 0.03em; }
+  .nav-tel span { font-size: 10px; color: var(--gray-mid); display: block; text-align: center; font-weight: 400; }
+  .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 4px; }
+  .hamburger span { display: block; width: 24px; height: 2px; background: var(--black); }
+  .mobile-menu {
+    display: none; position: fixed; top: var(--nav-h); left: 0; right: 0;
+    background: var(--white); border-bottom: 3px solid var(--red);
+    z-index: 999; padding: 16px 0; box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  }
+  .mobile-menu.open { display: block; }
+  .mobile-menu button {
+    display: block; width: 100%; padding: 14px 24px; font-size: 15px; font-weight: 700;
+    color: var(--gray-dark); text-align: left; background: none; border: none; cursor: pointer;
+    font-family: 'Noto Sans JP', sans-serif; border-bottom: 1px solid #eee;
+  }
+  .mobile-menu button.active { color: var(--red); }
+
+  /* PAGE */
+  .page { display: none; margin-top: var(--nav-h); }
+  .page.active { display: block; }
+
+  /* HERO */
+  .hero {
+    position: relative; height: calc(100vh - var(--nav-h));
+    min-height: 500px; max-height: 800px;
+    background: var(--black); overflow: hidden; display: flex; align-items: center;
+  }
+  .hero-bg {
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(200,0,30,0.85) 0%, rgba(0,0,0,0.3) 55%),
+      repeating-linear-gradient(-45deg, transparent, transparent 40px, rgba(255,255,255,0.02) 40px, rgba(255,255,255,0.02) 41px);
+  }
+  .hero-bg-img {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; opacity: 0.4;
+  }
+  .hero-slash {
+    position: absolute; top: -10%; right: 15%;
+    width: 6px; height: 130%; background: rgba(255,255,255,0.15); transform: rotate(-15deg);
+  }
+  .hero-content { position: relative; z-index: 2; padding: 0 48px; max-width: 800px; }
+  .hero-eyebrow {
+    font-family: 'Oswald', sans-serif; font-size: 13px; letter-spacing: 0.25em;
+    color: rgba(255,255,255,0.7); text-transform: uppercase; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .hero-eyebrow::before { content: ''; display: block; width: 40px; height: 2px; background: var(--red); }
+  .hero-title { font-size: clamp(38px, 6vw, 72px); font-weight: 900; color: var(--white); line-height: 1.15; margin-bottom: 24px; }
+  .hero-title em { display: block; font-style: normal; color: var(--red); }
+  .hero-sub { font-size: clamp(13px, 1.8vw, 16px); color: rgba(255,255,255,0.75); line-height: 1.9; margin-bottom: 40px; max-width: 480px; }
+  .btn-primary {
+    display: inline-block; padding: 14px 36px; background: var(--red); color: white;
+    font-weight: 700; font-size: 14px; letter-spacing: 0.08em;
+    clip-path: polygon(0 0, 100% 0, 96% 100%, 0 100%);
+    border: none; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; transition: background 0.2s;
+  }
+  .btn-primary:hover { background: var(--red-dark); }
+  .btn-secondary {
+    display: inline-block; padding: 13px 32px; background: transparent; color: white;
+    font-weight: 700; font-size: 14px; border: 2px solid rgba(255,255,255,0.5);
+    margin-left: 16px; transition: border-color 0.2s; cursor: pointer; font-family: 'Noto Sans JP', sans-serif;
+  }
+  .hero-scroll {
+    position: absolute; bottom: 32px; left: 48px;
+    display: flex; align-items: center; gap: 12px;
+    color: rgba(255,255,255,0.5); font-size: 11px; letter-spacing: 0.2em; font-family: 'Oswald', sans-serif;
+  }
+  .hero-scroll::before { content: ''; display: block; width: 1px; height: 48px; background: rgba(255,255,255,0.3); animation: scrollLine 1.5s ease-in-out infinite; }
+  @keyframes scrollLine { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+  /* セクション共通 */
+  section { padding: 80px 0; }
+  .section-inner { max-width: 1100px; margin: 0 auto; padding: 0 32px; }
+  .section-header { margin-bottom: 56px; }
+  .section-en {
+    font-family: 'Oswald', sans-serif; font-size: 11px; letter-spacing: 0.3em; color: var(--red);
+    text-transform: uppercase; display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+  }
+  .section-en::before { content: ''; display: block; width: 32px; height: 2px; background: var(--red); }
+  .section-title { font-size: clamp(28px, 4vw, 44px); font-weight: 900; line-height: 1.2; }
+  .section-title span { color: var(--red); }
+
+  /* STRENGTHS */
+  .strengths { background: var(--gray-light); }
+  .strengths-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .strength-card { background: var(--white); padding: 36px 28px; border-top: 4px solid var(--red); }
+  .strength-num { font-family: 'Oswald', sans-serif; font-size: 11px; letter-spacing: 0.2em; color: var(--red); margin-bottom: 16px; display: block; }
+  .strength-card h3 { font-size: 18px; font-weight: 900; margin-bottom: 14px; line-height: 1.4; }
+  .strength-card p { font-size: 13px; color: var(--gray-mid); line-height: 1.9; }
+
+  /* WORKS */
+  .works-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
+  .work-item { position: relative; aspect-ratio: 4/3; overflow: hidden; background: #1a1a2e; display: flex; align-items: center; justify-content: center; }
+  .work-item img { width: 100%; height: 100%; object-fit: cover; opacity: 0.7; transition: opacity 0.3s, transform 0.4s; }
+  .work-item:hover img { opacity: 0.5; transform: scale(1.05); }
+  .work-placeholder { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+  .work-item-label {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 20px 20px 16px; background: linear-gradient(transparent, rgba(0,0,0,0.8)); color: white;
+  }
+  .work-item-label h3 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .work-item-label span { font-size: 11px; color: rgba(255,255,255,0.6); font-family: 'Oswald', sans-serif; letter-spacing: 0.1em; }
+
+  /* MESSAGE */
+  .message { background: var(--black); color: var(--white); position: relative; overflow: hidden; }
+  .message-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+  .message-quote { font-size: clamp(22px, 3vw, 36px); font-weight: 900; line-height: 1.5; color: var(--white); border-left: 4px solid var(--red); padding-left: 28px; }
+  .message-body p { font-size: 14px; line-height: 2; color: rgba(255,255,255,0.75); margin-bottom: 16px; }
+  .message-sig { margin-top: 32px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.15); }
+  .message-sig span { font-size: 12px; color: rgba(255,255,255,0.4); letter-spacing: 0.1em; }
+  .message-sig strong { display: block; font-size: 16px; font-weight: 700; margin-top: 4px; }
+
+  /* NEWS */
+  .news-list { display: flex; flex-direction: column; }
+  .news-item { display: flex; align-items: baseline; gap: 24px; padding: 20px 0; border-bottom: 1px solid #eee; }
+  .news-date { font-family: 'Oswald', sans-serif; font-size: 13px; color: var(--gray-mid); white-space: nowrap; min-width: 100px; }
+  .news-tag { font-size: 10px; font-weight: 700; padding: 3px 8px; background: var(--red); color: white; letter-spacing: 0.08em; white-space: nowrap; }
+  .news-title { font-size: 14px; line-height: 1.6; }
+
+  /* RED CTA */
+  .red-cta { background: var(--red); padding: 80px 0; text-align: center; position: relative; overflow: hidden; }
+  .red-cta::before { content: 'TEKKO'; position: absolute; font-family: 'Oswald', sans-serif; font-size: 180px; font-weight: 700; color: rgba(255,255,255,0.06); top: 50%; left: 50%; transform: translate(-50%, -50%); white-space: nowrap; }
+  .red-cta h2 { font-size: clamp(26px, 4vw, 42px); font-weight: 900; color: white; margin-bottom: 16px; position: relative; }
+  .red-cta p { font-size: 14px; color: rgba(255,255,255,0.8); margin-bottom: 36px; position: relative; }
+  .btn-white { display: inline-block; padding: 14px 40px; background: white; color: var(--red); font-weight: 900; font-size: 14px; clip-path: polygon(4% 0, 100% 0, 96% 100%, 0 100%); position: relative; cursor: pointer; border: none; font-family: 'Noto Sans JP', sans-serif; }
+
+  /* PAGE HERO */
+  .page-hero { background: var(--black); padding: 64px 32px; position: relative; overflow: hidden; }
+  .page-hero::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(-45deg, transparent, transparent 24px, rgba(200,0,30,0.06) 24px, rgba(200,0,30,0.06) 25px); }
+  .page-hero-inner { max-width: 1100px; margin: 0 auto; position: relative; }
+  .page-hero-label { font-family: 'Oswald', sans-serif; font-size: 11px; letter-spacing: 0.3em; color: var(--red); margin-bottom: 12px; }
+  .page-hero h1 { font-size: clamp(32px, 5vw, 56px); font-weight: 900; color: white; line-height: 1.2; }
+
+  /* COMPANY */
+  .company-intro { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; margin-bottom: 64px; }
+  .company-intro-text h2 { font-size: clamp(22px, 3vw, 32px); font-weight: 900; line-height: 1.4; margin-bottom: 20px; }
+  .company-intro-text h2 span { color: var(--red); }
+  .company-intro-text p { font-size: 14px; line-height: 2; color: var(--gray-mid); margin-bottom: 14px; }
+  .company-visual { background: var(--gray-light); aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; }
+  .company-visual img { width: 100%; height: 100%; object-fit: cover; }
+  .company-visual-text { font-family: 'Oswald', sans-serif; font-size: 64px; font-weight: 700; color: rgba(200,0,30,0.12); }
+  .company-table-wrap { background: var(--gray-light); padding: 48px; }
+  .company-table-wrap h2 { font-size: 22px; font-weight: 900; margin-bottom: 28px; padding-bottom: 16px; border-bottom: 3px solid var(--red); }
+  .company-table { width: 100%; border-collapse: collapse; }
+  .company-table tr { border-bottom: 1px solid #ddd; }
+  .company-table th { width: 180px; padding: 18px 20px 18px 0; font-size: 13px; font-weight: 700; text-align: left; vertical-align: top; white-space: nowrap; }
+  .company-table td { padding: 18px 0; font-size: 14px; color: var(--gray-dark); line-height: 1.7; }
+
+  /* RECRUIT */
+  .recruit-intro { background: var(--black); color: white; padding: 80px 32px; text-align: center; position: relative; overflow: hidden; }
+  .recruit-intro::before { content: 'JOIN US'; position: absolute; font-family: 'Oswald', sans-serif; font-size: 160px; font-weight: 700; color: rgba(255,255,255,0.04); top: 50%; left: 50%; transform: translate(-50%, -50%); white-space: nowrap; }
+  .recruit-intro-inner { position: relative; max-width: 700px; margin: 0 auto; }
+  .recruit-intro h2 { font-size: clamp(28px, 4vw, 48px); font-weight: 900; line-height: 1.3; margin-bottom: 20px; }
+  .recruit-intro h2 em { color: var(--red); font-style: normal; }
+  .recruit-intro p { font-size: 14px; line-height: 2; color: rgba(255,255,255,0.7); }
+  .recruit-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-bottom: 48px; }
+  .recruit-card { border: 1px solid #ddd; overflow: hidden; }
+  .recruit-card-head { background: var(--black); padding: 24px 28px; color: white; position: relative; overflow: hidden; }
+  .recruit-card-head::after { content: ''; position: absolute; bottom: -1px; right: 0; width: 0; height: 0; border-style: solid; border-width: 0 0 32px 40px; border-color: transparent transparent var(--red) transparent; }
+  .recruit-card-type { font-size: 11px; letter-spacing: 0.2em; color: var(--red); font-family: 'Oswald', sans-serif; margin-bottom: 8px; }
+  .recruit-card-head h3 { font-size: 19px; font-weight: 900; line-height: 1.3; }
+  .recruit-card-body { padding: 28px; }
+  .recruit-item { display: flex; gap: 16px; margin-bottom: 16px; font-size: 13px; }
+  .recruit-item-label { font-weight: 700; min-width: 72px; white-space: nowrap; }
+  .recruit-item-value { color: var(--gray-dark); line-height: 1.7; }
+  .benefits-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .benefit-item { background: var(--gray-light); padding: 24px 20px; text-align: center; border-bottom: 3px solid transparent; transition: border-color 0.2s; }
+  .benefit-item:hover { border-color: var(--red); }
+  .benefit-icon { font-size: 28px; margin-bottom: 12px; display: block; }
+  .benefit-item h3 { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  .benefit-item p { font-size: 11px; color: var(--gray-mid); line-height: 1.7; }
+
+  /* FOOTER */
+  footer { background: var(--black); color: rgba(255,255,255,0.6); padding: 48px 0 24px; }
+  .footer-inner { max-width: 1100px; margin: 0 auto; padding: 0 32px; }
+  .footer-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; padding-bottom: 40px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .footer-logo { color: white; font-weight: 900; font-size: 18px; margin-bottom: 12px; }
+  .footer-address { font-size: 12px; line-height: 2; }
+  .footer-nav { display: flex; gap: 40px; }
+  .footer-nav-col h4 { font-size: 12px; font-weight: 700; color: white; letter-spacing: 0.1em; margin-bottom: 12px; }
+  .footer-nav-col button { display: block; font-size: 12px; color: rgba(255,255,255,0.5); background: none; border: none; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; margin-bottom: 8px; padding: 0; transition: color 0.2s; }
+  .footer-nav-col button:hover { color: var(--red); }
+  .footer-bottom { display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
+  .footer-tel { color: white; font-size: 20px; font-weight: 900; font-family: 'Oswald', sans-serif; }
+  .footer-tel span { display: block; font-size: 10px; color: rgba(255,255,255,0.4); font-family: 'Noto Sans JP', sans-serif; font-weight: 400; letter-spacing: 0.1em; margin-bottom: 4px; }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    :root { --nav-h: 56px; }
+    .nav-links, .nav-tel { display: none; }
+    .hamburger { display: flex; }
+    .hero-content { padding: 0 24px; }
+    .btn-secondary { display: none; }
+    .strengths-grid { grid-template-columns: 1fr; gap: 16px; }
+    .works-grid { grid-template-columns: 1fr 1fr; }
+    .message-inner { grid-template-columns: 1fr; gap: 32px; }
+    .company-intro { grid-template-columns: 1fr; gap: 32px; }
+    .company-table-wrap { padding: 28px 20px; }
+    .company-table th { width: 110px; font-size: 12px; }
+    .recruit-cards { grid-template-columns: 1fr; }
+    .benefits-grid { grid-template-columns: repeat(2, 1fr); }
+    .footer-top { flex-direction: column; gap: 32px; }
+    .footer-nav { flex-direction: column; gap: 24px; }
+    .footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
+    section { padding: 56px 0; }
+    .section-inner { padding: 0 20px; }
+    .page-hero { padding: 48px 20px; }
+    .recruit-intro { padding: 56px 20px; }
+    .news-item { flex-wrap: wrap; gap: 8px; }
+    .news-date { min-width: auto; }
+  }
+  @media (max-width: 480px) {
+    .works-grid { grid-template-columns: 1fr; }
+    .benefits-grid { grid-template-columns: 1fr 1fr; }
+    nav { padding: 0 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ローディング -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo" onclick="showPage('top')">
+    <div class="nav-logo-mark"><span>R</span></div>
+    <div class="nav-logo-text">
+      <span id="nav-company-name">琉球鉄工株式会社</span>
+      <small>RYUKYU TEKKO CO.,LTD.</small>
+    </div>
+  </div>
+  <ul class="nav-links">
+    <li><button class="active" onclick="showPage('top')">トップ</button></li>
+    <li><button onclick="showPage('company')">会社概要</button></li>
+    <li><button onclick="showPage('recruit')">採用情報</button></li>
+  </ul>
+  <div class="nav-tel">
+    <span>お問い合わせ</span>
+    <span id="nav-tel">098-XXX-XXXX</span>
+  </div>
+  <button class="hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></button>
+</nav>
+
+<!-- モバイルメニュー -->
+<div class="mobile-menu" id="mobileMenu">
+  <button class="active" onclick="showPage('top');toggleMenu()">トップ</button>
+  <button onclick="showPage('company');toggleMenu()">会社概要</button>
+  <button onclick="showPage('recruit');toggleMenu()">採用情報</button>
+</div>
+
+<!-- ========== TOP PAGE ========== -->
+<div id="page-top" class="page active">
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-slash"></div>
+    <div class="hero-content">
+      <div class="hero-eyebrow">RYUKYU TEKKO CO., LTD.</div>
+      <h1 class="hero-title" id="hero-title">読み込み中...</h1>
+      <p class="hero-sub" id="hero-subtitle"></p>
+      <button class="btn-primary" onclick="showPage('company')">会社を知る</button>
+      <button class="btn-secondary" onclick="showPage('recruit')">採用情報</button>
+    </div>
+    <div class="hero-scroll">SCROLL</div>
+  </section>
+
+  <section class="strengths">
+    <div class="section-inner">
+      <div class="section-header">
+        <div class="section-en">OUR STRENGTHS</div>
+        <h2 class="section-title">私たちが<span>選ばれる</span>理由</h2>
+      </div>
+      <div class="strengths-grid">
+        <div class="strength-card">
+          <span class="strength-num">STRENGTH 01</span>
+          <h3 id="strength-card1-title">読み込み中...</h3>
+          <p id="strength-card1-body"></p>
+        </div>
+        <div class="strength-card">
+          <span class="strength-num">STRENGTH 02</span>
+          <h3 id="strength-card2-title">読み込み中...</h3>
+          <p id="strength-card2-body"></p>
+        </div>
+        <div class="strength-card">
+          <span class="strength-num">STRENGTH 03</span>
+          <h3 id="strength-card3-title">読み込み中...</h3>
+          <p id="strength-card3-body"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-inner">
+      <div class="section-header">
+        <div class="section-en">OUR WORKS</div>
+        <h2 class="section-title"><span>実績</span>紹介</h2>
+      </div>
+    </div>
+    <div class="works-grid">
+      <div class="work-item">
+        <div class="work-placeholder">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="m3 9 4-4 4 4 4-4 4 4"/></svg>
+        </div>
+        <div class="work-item-label"><h3>那覇市内 歩道橋改修工事</h3><span>BRIDGE WORK</span></div>
+      </div>
+      <div class="work-item" style="background:#0d1f2d">
+        <div class="work-placeholder">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="m3 9 4-4 4 4 4-4 4 4"/></svg>
+        </div>
+        <div class="work-item-label"><h3>大型商業施設 鉄骨工事</h3><span>STRUCTURAL STEEL</span></div>
+      </div>
+      <div class="work-item" style="background:#1a0a0a">
+        <div class="work-placeholder">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="m3 9 4-4 4 4 4-4 4 4"/></svg>
+        </div>
+        <div class="work-item-label"><h3>港湾施設 鋼管杭打設</h3><span>STEEL PIPE PILE</span></div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:32px">
+      <button class="btn-primary">実績一覧を見る</button>
+    </div>
+  </section>
+
+  <section class="message">
+    <div class="section-inner">
+      <div class="message-inner">
+        <div class="message-quote" id="message-quote">読み込み中...</div>
+        <div class="message-body">
+          <p id="message-body"></p>
+          <div class="message-sig">
+            <span>代表取締役</span>
+            <strong id="message-ceo-name"></strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-inner">
+      <div class="section-header">
+        <div class="section-en">INFORMATION</div>
+        <h2 class="section-title">お知らせ</h2>
+      </div>
+      <div class="news-list">
+        <div class="news-item"><span class="news-date">2025.07.15</span><span class="news-tag">お知らせ</span><span class="news-title">令和7年度 安全衛生大会を開催しました</span></div>
+        <div class="news-item"><span class="news-date">2025.06.30</span><span class="news-tag">採用</span><span class="news-title">2026年度新卒採用エントリー受付を開始しました</span></div>
+        <div class="news-item"><span class="news-date">2025.05.20</span><span class="news-tag">実績</span><span class="news-title">那覇港湾整備工事が竣工しました</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="red-cta">
+    <h2>一緒に沖縄の未来を<br>つくりませんか。</h2>
+    <p>琉球鉄工では、鉄への情熱を持つ仲間を募集しています。</p>
+    <button class="btn-white" onclick="showPage('recruit')">採用情報を見る</button>
+  </div>
+</div>
+
+<!-- ========== COMPANY PAGE ========== -->
+<div id="page-company" class="page">
+  <div class="page-hero">
+    <div class="page-hero-inner">
+      <div class="page-hero-label">COMPANY</div>
+      <h1>会社概要</h1>
+    </div>
+  </div>
+  <section>
+    <div class="section-inner">
+      <div class="company-intro">
+        <div class="company-intro-text">
+          <h2 id="company-intro-title">読み込み中...</h2>
+          <p id="company-intro-body"></p>
+        </div>
+        <div class="company-visual">
+          <div class="company-visual-text">TEKKO</div>
+        </div>
+      </div>
+      <div class="company-table-wrap">
+        <h2>会社情報</h2>
+        <table class="company-table">
+          <tr><th>会社名</th><td id="c-company-name">—</td></tr>
+          <tr><th>設立</th><td id="c-established">—</td></tr>
+          <tr><th>代表者</th><td id="c-ceo">—</td></tr>
+          <tr><th>所在地</th><td id="c-address">—</td></tr>
+          <tr><th>電話番号</th><td id="c-tel">—</td></tr>
+          <tr><th>事業内容</th><td id="c-business">—</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+  <div class="red-cta">
+    <h2>お問い合わせはお気軽に。</h2>
+    <p>施工のご相談・お見積りはお電話またはフォームよりどうぞ。</p>
+    <button class="btn-white">お問い合わせ</button>
+  </div>
+</div>
+
+<!-- ========== RECRUIT PAGE ========== -->
+<div id="page-recruit" class="page">
+  <div class="recruit-intro">
+    <div class="recruit-intro-inner">
+      <h2 id="recruit-hero-title">読み込み中...</h2>
+      <p id="recruit-hero-subtitle"></p>
+    </div>
+  </div>
+  <section>
+    <div class="section-inner">
+      <div class="section-header">
+        <div class="section-en">OPEN POSITIONS</div>
+        <h2 class="section-title">募集職種</h2>
+      </div>
+      <div class="recruit-cards">
+        <div class="recruit-card">
+          <div class="recruit-card-head">
+            <div class="recruit-card-type">FULL-TIME / 正社員</div>
+            <h3 id="job1-title">読み込み中...</h3>
+          </div>
+          <div class="recruit-card-body">
+            <div class="recruit-item"><span class="recruit-item-label">仕事内容</span><span class="recruit-item-value" id="job1-body"></span></div>
+            <div class="recruit-item"><span class="recruit-item-label">給与</span><span class="recruit-item-value" id="job1-salary"></span></div>
+          </div>
+        </div>
+        <div class="recruit-card">
+          <div class="recruit-card-head">
+            <div class="recruit-card-type">FULL-TIME / 正社員</div>
+            <h3 id="job2-title">読み込み中...</h3>
+          </div>
+          <div class="recruit-card-body">
+            <div class="recruit-item"><span class="recruit-item-label">仕事内容</span><span class="recruit-item-value" id="job2-body"></span></div>
+            <div class="recruit-item"><span class="recruit-item-label">給与</span><span class="recruit-item-value" id="job2-salary"></span></div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:64px">
+        <div class="section-header">
+          <div class="section-en">BENEFITS</div>
+          <h2 class="section-title">福利厚生</h2>
+        </div>
+        <div class="benefits-grid">
+          <div class="benefit-item"><span class="benefit-icon">🏥</span><h3>社会保険完備</h3><p>健康・厚生年金・雇用・労災</p></div>
+          <div class="benefit-item"><span class="benefit-icon">🏠</span><h3>住宅手当</h3><p>条件あり、月額最大◯万円</p></div>
+          <div class="benefit-item"><span class="benefit-icon">📚</span><h3>資格取得支援</h3><p>受験費用全額会社負担</p></div>
+          <div class="benefit-item"><span class="benefit-icon">🚗</span><h3>交通費支給</h3><p>実費支給（上限あり）</p></div>
+          <div class="benefit-item"><span class="benefit-icon">👷</span><h3>制服・工具支給</h3><p>入社時一式支給</p></div>
+          <div class="benefit-item"><span class="benefit-icon">📈</span><h3>昇給・賞与</h3><p>年1回昇給、賞与年2回</p></div>
+          <div class="benefit-item"><span class="benefit-icon">🌴</span><h3>年次有給休暇</h3><p>法定通り付与・取得奨励</p></div>
+          <div class="benefit-item"><span class="benefit-icon">🤝</span><h3>社員登用制度</h3><p>パート→正社員実績あり</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <div class="red-cta">
+    <h2>まずはお気軽にご応募ください。</h2>
+    <p>電話・メール・フォームからエントリーを受け付けています。</p>
+    <button class="btn-white">エントリーする</button>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div>
+        <div class="footer-logo" id="footer-company-name">琉球鉄工株式会社</div>
+        <div class="footer-address" id="footer-address">読み込み中...</div>
+      </div>
+      <nav class="footer-nav">
+        <div class="footer-nav-col">
+          <h4>MENU</h4>
+          <button onclick="showPage('top')">トップ</button>
+          <button onclick="showPage('company')">会社概要</button>
+          <button onclick="showPage('recruit')">採用情報</button>
+        </div>
+        <div class="footer-nav-col">
+          <h4>CONTACT</h4>
+          <button>お問い合わせ</button>
+          <button>アクセスマップ</button>
+        </div>
+      </nav>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-tel">
+        <span>お電話でのお問い合わせ</span>
+        <span id="footer-tel">098-XXX-XXXX</span>
+      </div>
+      <div>© 2025 <span id="footer-company-name2">琉球鉄工株式会社</span> All Rights Reserved.</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ========== Supabase 設定 ==========
+const SUPABASE_URL = 'https://umzrziidmnlpcvvomdaz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtenJ6aWlkbW5scGN2dm9tZGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1NTU2MTgsImV4cCI6MjEwMTEzMTYxOH0.A5ktqJw_Ctmk11ZXgUyS9g9yqmBf5KU7kbeX05ZhwQs';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ========== テキスト設定ヘルパー ==========
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el && value) el.textContent = value;
+}
+
+// ========== Supabaseからコンテンツ取得 ==========
+async function loadContents() {
+  try {
+    const { data, error } = await supabase
+      .from('site_contents')
+      .select('page, section, block_key, text_value, image_url')
+      .eq('is_published', true);
+
+    if (error) { console.error('Supabase error:', error); return; }
+
+    // データをマップ化 { "top.hero.title": "値", ... }
+    const map = {};
+    data.forEach(row => {
+      map[`${row.page}.${row.section}.${row.block_key}`] = {
+        text: row.text_value,
+        image: row.image_url
+      };
+    });
+
+    // ===== TOP PAGE =====
+    setText('hero-title', map['top.hero.title']?.text);
+    setText('hero-subtitle', map['top.hero.subtitle']?.text);
+    setText('strength-card1-title', map['top.strengths.card1_title']?.text);
+    setText('strength-card1-body', map['top.strengths.card1_body']?.text);
+    setText('strength-card2-title', map['top.strengths.card2_title']?.text);
+    setText('strength-card2-body', map['top.strengths.card2_body']?.text);
+    setText('strength-card3-title', map['top.strengths.card3_title']?.text);
+    setText('strength-card3-body', map['top.strengths.card3_body']?.text);
+    setText('message-quote', map['top.message.quote']?.text);
+    setText('message-body', map['top.message.body']?.text);
+    setText('message-ceo-name', map['top.message.ceo_name']?.text);
+
+    // ===== COMPANY PAGE =====
+    const companyName = map['company.info.company_name']?.text;
+    setText('company-intro-title', map['company.info.intro_title']?.text);
+    setText('company-intro-body', map['company.info.intro_body']?.text);
+    setText('c-company-name', companyName);
+    setText('c-established', map['company.info.established']?.text);
+    setText('c-ceo', map['company.info.ceo']?.text);
+    setText('c-address', map['company.info.address']?.text);
+    setText('c-tel', map['company.info.tel']?.text);
+    setText('c-business', map['company.info.business']?.text);
+
+    // ===== RECRUIT PAGE =====
+    setText('recruit-hero-title', map['recruit.hero.title']?.text);
+    setText('recruit-hero-subtitle', map['recruit.hero.subtitle']?.text);
+    setText('job1-title', map['recruit.job1.title']?.text);
+    setText('job1-body', map['recruit.job1.body']?.text);
+    setText('job1-salary', map['recruit.job1.salary']?.text);
+    setText('job2-title', map['recruit.job2.title']?.text);
+    setText('job2-body', map['recruit.job2.body']?.text);
+    setText('job2-salary', map['recruit.job2.salary']?.text);
+
+    // ===== ナビ・フッター =====
+    if (companyName) {
+      setText('nav-company-name', companyName);
+      setText('footer-company-name', companyName);
+      setText('footer-company-name2', companyName);
+    }
+    const tel = map['company.info.tel']?.text;
+    if (tel) { setText('nav-tel', tel); setText('footer-tel', tel); }
+    const address = map['company.info.address']?.text;
+    if (address) setText('footer-address', address + '<br>TEL: ' + (tel || ''));
+
+  } catch(e) {
+    console.error('Load error:', e);
+  } finally {
+    // ローディング非表示
+    setTimeout(() => {
+      document.getElementById('loadingOverlay').classList.add('hidden');
+    }, 300);
+  }
+}
+
+// ========== ページ切り替え ==========
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  const pages = ['top', 'company', 'recruit'];
+  const idx = pages.indexOf(id);
+  document.querySelectorAll('.nav-links button').forEach((btn, i) => btn.classList.toggle('active', i === idx));
+  document.querySelectorAll('.mobile-menu button').forEach((btn, i) => btn.classList.toggle('active', i === idx));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function toggleMenu() { document.getElementById('mobileMenu').classList.toggle('open'); }
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('mobileMenu');
+  const ham = document.querySelector('.hamburger');
+  if (!menu.contains(e.target) && !ham.contains(e.target)) menu.classList.remove('open');
+});
+
+// ========== 初期ロード ==========
+loadContents();
+</script>
+</body>
+</html>
