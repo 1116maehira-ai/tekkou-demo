@@ -511,7 +511,7 @@ body { font-family: -apple-system, 'Hiragino Sans', 'Noto Sans JP', sans-serif; 
 const SUPABASE_URL = 'https://umzrziidmnlpcvvomdaz.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtenJ6aWlkbW5scGN2dm9tZGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1NTU2MTgsImV4cCI6MjEwMTEzMTYxOH0.A5ktqJw_Ctmk11ZXgUyS9g9yqmBf5KU7kbeX05ZhwQs';
 
-const CLAUDE_API = 'https://api.anthropic.com/v1/messages';
+const CLAUDE_API = '/api/claude';
 
 // ========== セクション定義 ==========
 const SECTIONS = {
@@ -822,8 +822,6 @@ async function sendAI() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
         system: `あなたは沖縄の鉄工業「琉球鉄工株式会社」のホームページのCMS管理画面に組み込まれたアシスタントです。
 ユーザーの指示に従って、ホームページの${state.sectionName}セクションの「${state.editingBlock}」ブロックのテキストを改善・生成してください。
 現在のテキスト: 「${current}」
@@ -832,7 +830,7 @@ async function sendAI() {
       })
     });
     const data = await res.json();
-    const reply = data.content?.[0]?.text || '申し訳ありません、エラーが発生しました。';
+    const reply = data.text || '申し訳ありません、エラーが発生しました。';
     document.getElementById('ai-loading')?.remove();
     chat.innerHTML += `<div class="ai-msg assistant">✦ ${escHtml(reply)}</div>`;
     chat.scrollTop = chat.scrollHeight;
