@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>CMS管理画面 — 琉球鉄工</title>
+<style>
+:root {
+  --red: #C8001E;
+  --red-dark: #9A0016;
+  --black: #111;
+  --gray-dark: #333;
+  --gray-mid: #666;
+  --gray-light: #F5F5F5;
+  --border: #E0E0E0;
+  --white: #fff;
+  --success: #16A34A;
+  --radius: 12px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body { font-family: -apple-system, 'Hiragino Sans', 'Noto Sans JP', sans-serif; background: var(--gray-light); color: var(--black); min-height: 100vh; }
+
+/* ヘッダー */
+.header {
+  background: var(--black);
+  padding: 0 16px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header-logo { display: flex; align-items: center; gap: 10px; }
+.header-mark { width: 28px; height: 28px; background: var(--red); display: flex; align-items: center; justify-content: center; clip-path: polygon(0 0,100% 0,100% 75%,85% 100%,0 100%); }
+.header-mark span { color: white; font-size: 13px; font-weight: 700; }
+.header-title { color: white; font-size: 14px; font-weight: 700; }
+.header-title small { display: block; font-size: 10px; color: rgba(255,255,255,0.4); font-weight: 400; }
+.preview-btn {
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* パンくず */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--gray-mid);
+  background: white;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.breadcrumb-item { cursor: pointer; color: var(--red); }
+.breadcrumb-item.current { color: var(--gray-dark); cursor: default; }
+.breadcrumb-sep { color: var(--border); }
+
+/* メインコンテンツ */
+.main { padding: 16px; max-width: 680px; margin: 0 auto; }
+
+/* ページ選択 */
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--gray-mid);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.page-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 24px; }
+.page-card {
+  background: white;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+.page-card:active { transform: scale(0.97); }
+.page-card.selected { border-color: var(--red); }
+.page-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--red); opacity: 0; transition: opacity 0.15s; }
+.page-card.selected::after { opacity: 1; }
+.page-card-icon { font-size: 24px; margin-bottom: 8px; }
+.page-card-name { font-size: 13px; font-weight: 700; }
+.page-card-count { font-size: 10px; color: var(--gray-mid); margin-top: 4px; }
+
+/* セクションリスト */
+.section-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+.section-item {
+  background: white;
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  transition: border-color 0.15s;
+  box-shadow: var(--shadow);
+}
+.section-item:active { transform: scale(0.99); }
+.section-item-left { display: flex; align-items: center; gap: 12px; }
+.section-icon { width: 36px; height: 36px; background: var(--gray-light); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.section-name { font-size: 14px; font-weight: 700; }
+.section-desc { font-size: 11px; color: var(--gray-mid); margin-top: 2px; }
+.section-arrow { color: var(--gray-mid); font-size: 18px; }
+.section-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; background: var(--red); color: white; }
+
+/* ブロック編集 */
+.block-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+.block-card {
+  background: white;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.block-card-head {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--gray-light);
+}
+.block-type { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: var(--gray-mid); text-transform: uppercase; }
+.block-type-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+.block-type-badge.text { background: #EFF6FF; color: #1D4ED8; }
+.block-type-badge.image { background: #F0FDF4; color: #15803D; }
+.block-content { padding: 14px 16px; }
+.block-current { font-size: 14px; line-height: 1.6; color: var(--black); margin-bottom: 12px; min-height: 40px; }
+.block-current.empty { color: var(--gray-mid); font-style: italic; }
+.block-actions { display: flex; gap: 8px; }
+.btn-edit {
+  flex: 1;
+  padding: 10px;
+  background: var(--black);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background 0.15s;
+}
+.btn-edit:active { background: var(--gray-dark); }
+.btn-ai {
+  padding: 10px 14px;
+  background: var(--red);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.btn-ai:active { background: var(--red-dark); }
+
+/* 編集モーダル */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: white;
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-height: 92vh;
+  overflow-y: auto;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.modal-overlay.open .modal { transform: translateY(0); }
+.modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 12px auto 16px; }
+.modal-header { padding: 0 20px 16px; border-bottom: 1px solid var(--border); }
+.modal-title { font-size: 16px; font-weight: 900; }
+.modal-subtitle { font-size: 12px; color: var(--gray-mid); margin-top: 4px; }
+.modal-body { padding: 20px; }
+
+/* テキスト編集エリア */
+.edit-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 14px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  font-size: 15px;
+  font-family: inherit;
+  line-height: 1.7;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.edit-textarea:focus { border-color: var(--red); }
+
+/* AI chat */
+.ai-section { margin-top: 16px; }
+.ai-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--red);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ai-chat { background: var(--gray-light); border-radius: 10px; padding: 12px; min-height: 80px; margin-bottom: 10px; max-height: 200px; overflow-y: auto; }
+.ai-msg { font-size: 13px; line-height: 1.7; }
+.ai-msg.assistant { color: var(--black); }
+.ai-msg.user { color: var(--gray-mid); margin-bottom: 8px; }
+.ai-msg.loading { color: var(--gray-mid); font-style: italic; }
+.ai-input-row { display: flex; gap: 8px; }
+.ai-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.ai-input:focus { border-color: var(--red); }
+.ai-send {
+  padding: 10px 16px;
+  background: var(--red);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.ai-send:disabled { opacity: 0.5; }
+
+/* 承認エリア */
+.approve-area {
+  margin-top: 20px;
+  padding: 16px;
+  background: #FFF8F8;
+  border: 1px solid rgba(200,0,30,0.15);
+  border-radius: 10px;
+}
+.approve-label { font-size: 11px; font-weight: 700; color: var(--red); letter-spacing: 0.1em; margin-bottom: 8px; }
+.approve-preview { font-size: 14px; line-height: 1.6; color: var(--black); margin-bottom: 14px; font-weight: 500; }
+.approve-actions { display: flex; gap: 8px; }
+.btn-approve {
+  flex: 2;
+  padding: 12px;
+  background: var(--red);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background 0.15s;
+}
+.btn-approve:active { background: var(--red-dark); }
+.btn-approve:disabled { opacity: 0.5; }
+.btn-cancel-modal {
+  flex: 1;
+  padding: 12px;
+  background: var(--gray-light);
+  color: var(--gray-dark);
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* トースト */
+.toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--black);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0;
+  transition: all 0.3s;
+  z-index: 999;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.toast.success { background: var(--success); }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ローディング */
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  transition: opacity 0.3s;
+}
+.loading-screen.hide { opacity: 0; pointer-events: none; }
+.spinner { width: 36px; height: 36px; border: 3px solid #eee; border-top-color: var(--red); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 空状態 */
+.empty-state { text-align: center; padding: 48px 20px; color: var(--gray-mid); }
+.empty-state-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; line-height: 1.7; }
+
+/* ステータスバー */
+.status-bar {
+  background: white;
+  border-top: 1px solid var(--border);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--gray-mid);
+  position: sticky;
+  bottom: 0;
+}
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); display: inline-block; }
+
+@media (min-width: 480px) {
+  .page-grid { grid-template-columns: repeat(3,1fr); }
+}
+</style>
+</head>
+<body>
+
+<div class="loading-screen" id="loadingScreen">
+  <div class="spinner"></div>
+</div>
+
+<!-- ヘッダー -->
+<div class="header">
+  <div class="header-logo">
+    <div class="header-mark"><span>R</span></div>
+    <div class="header-title">
+      CMS管理
+      <small>琉球鉄工株式会社</small>
+    </div>
+  </div>
+  <a class="preview-btn" href="https://tekkou-demo.vercel.app" target="_blank">
+    <span>↗</span> サイトを見る
+  </a>
+</div>
+
+<!-- パンくず -->
+<div class="breadcrumb" id="breadcrumb">
+  <span class="breadcrumb-item current">ページ選択</span>
+</div>
+
+<!-- メイン -->
+<div class="main" id="main">
+
+  <!-- VIEW: ページ選択 -->
+  <div id="view-pages">
+    <div class="section-label">編集するページを選択</div>
+    <div class="page-grid">
+      <div class="page-card" onclick="selectPage('top','トップ')">
+        <div class="page-card-icon">🏠</div>
+        <div class="page-card-name">トップ</div>
+        <div class="page-card-count">5セクション</div>
+      </div>
+      <div class="page-card" onclick="selectPage('company','会社概要')">
+        <div class="page-card-icon">🏢</div>
+        <div class="page-card-name">会社概要</div>
+        <div class="page-card-count">2セクション</div>
+      </div>
+      <div class="page-card" onclick="selectPage('recruit','採用情報')">
+        <div class="page-card-icon">👷</div>
+        <div class="page-card-name">採用情報</div>
+        <div class="page-card-count">3セクション</div>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-top:8px">最近の更新</div>
+    <div id="recent-updates" class="block-list">
+      <div class="empty-state"><div class="empty-state-icon">📋</div><p>更新履歴はまだありません</p></div>
+    </div>
+  </div>
+
+  <!-- VIEW: セクション選択 -->
+  <div id="view-sections" style="display:none">
+    <div class="section-label" id="sections-label">セクションを選択</div>
+    <div id="section-list" class="section-list"></div>
+  </div>
+
+  <!-- VIEW: ブロック編集 -->
+  <div id="view-blocks" style="display:none">
+    <div class="section-label" id="blocks-label">編集するブロックを選択</div>
+    <div id="block-list" class="block-list"></div>
+  </div>
+
+</div>
+
+<!-- ステータスバー -->
+<div class="status-bar">
+  <span class="status-dot"></span>
+  <span>Supabase 接続中</span>
+  <span style="margin-left:auto;color:var(--gray-mid)" id="last-updated"></span>
+</div>
+
+<!-- 編集モーダル -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">編集</div>
+      <div class="modal-subtitle" id="modal-subtitle"></div>
+    </div>
+    <div class="modal-body">
+
+      <textarea class="edit-textarea" id="editTextarea" placeholder="テキストを入力..."></textarea>
+
+      <!-- AI section -->
+      <div class="ai-section">
+        <div class="ai-label">
+          <span>✦</span> クロに相談する
+        </div>
+        <div class="ai-chat" id="aiChat">
+          <div class="ai-msg assistant">このテキストについて何でも相談してください。「もっとインパクトのある文章に」「短くして」「沖縄らしさを出して」など、お気軽に！</div>
+        </div>
+        <div class="ai-input-row">
+          <input type="text" class="ai-input" id="aiInput" placeholder="クロに話しかける..." onkeydown="if(event.key==='Enter')sendAI()">
+          <button class="ai-send" id="aiSendBtn" onclick="sendAI()">送信</button>
+        </div>
+      </div>
+
+      <!-- 承認エリア -->
+      <div class="approve-area" id="approveArea" style="display:none">
+        <div class="approve-label">✓ 変更内容を確認</div>
+        <div class="approve-preview" id="approvePreview"></div>
+        <div class="approve-actions">
+          <button class="btn-approve" id="approveBtn" onclick="approveChange()">
+            ✓ 承認してサイトに反映
+          </button>
+          <button class="btn-cancel-modal" onclick="hideApprove()">見直す</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- トースト -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ========== 設定 ==========
+const SUPABASE_URL = 'https://umzrziidmnlpcvvomdaz.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtenJ6aWlkbW5scGN2dm9tZGF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1NTU2MTgsImV4cCI6MjEwMTEzMTYxOH0.A5ktqJw_Ctmk11ZXgUyS9g9yqmBf5KU7kbeX05ZhwQs';
+
+const CLAUDE_API = 'https://api.anthropic.com/v1/messages';
+
+// ========== セクション定義 ==========
+const SECTIONS = {
+  top: [
+    { id: 'hero', name: 'ヒーロー', icon: '🎯', desc: 'メインビジュアル・キャッチコピー',
+      blocks: [
+        { key: 'title', label: 'キャッチコピー', type: 'text' },
+        { key: 'subtitle', label: 'サブテキスト', type: 'text' }
+      ]
+    },
+    { id: 'strengths', name: '選ばれる理由', icon: '💪', desc: '3つの強みカード',
+      blocks: [
+        { key: 'card1_title', label: '強み①タイトル', type: 'text' },
+        { key: 'card1_body', label: '強み①本文', type: 'text' },
+        { key: 'card2_title', label: '強み②タイトル', type: 'text' },
+        { key: 'card2_body', label: '強み②本文', type: 'text' },
+        { key: 'card3_title', label: '強み③タイトル', type: 'text' },
+        { key: 'card3_body', label: '強み③本文', type: 'text' }
+      ]
+    },
+    { id: 'message', name: '代表メッセージ', icon: '💬', desc: '代表からのメッセージ',
+      blocks: [
+        { key: 'quote', label: '引用テキスト', type: 'text' },
+        { key: 'body', label: 'メッセージ本文', type: 'text' },
+        { key: 'ceo_name', label: '代表者名', type: 'text' }
+      ]
+    }
+  ],
+  company: [
+    { id: 'info', name: '会社情報', icon: '🏢', desc: '会社概要テーブル・紹介文',
+      blocks: [
+        { key: 'intro_title', label: '紹介タイトル', type: 'text' },
+        { key: 'intro_body', label: '紹介文', type: 'text' },
+        { key: 'company_name', label: '会社名', type: 'text' },
+        { key: 'established', label: '設立年', type: 'text' },
+        { key: 'ceo', label: '代表者', type: 'text' },
+        { key: 'address', label: '所在地', type: 'text' },
+        { key: 'tel', label: '電話番号', type: 'text' },
+        { key: 'business', label: '事業内容', type: 'text' }
+      ]
+    }
+  ],
+  recruit: [
+    { id: 'hero', name: '採用トップ', icon: '🎯', desc: '採用ページのメインビジュアル',
+      blocks: [
+        { key: 'title', label: 'タイトル', type: 'text' },
+        { key: 'subtitle', label: 'サブテキスト', type: 'text' }
+      ]
+    },
+    { id: 'job1', name: '求人①', icon: '👷', desc: '鉄骨製作スタッフ',
+      blocks: [
+        { key: 'title', label: '職種名', type: 'text' },
+        { key: 'body', label: '仕事内容', type: 'text' },
+        { key: 'salary', label: '給与', type: 'text' }
+      ]
+    },
+    { id: 'job2', name: '求人②', icon: '🔧', desc: '施工管理スタッフ',
+      blocks: [
+        { key: 'title', label: '職種名', type: 'text' },
+        { key: 'body', label: '仕事内容', type: 'text' },
+        { key: 'salary', label: '給与', type: 'text' }
+      ]
+    }
+  ]
+};
+
+// ========== 状態管理 ==========
+let state = {
+  page: null,
+  pageName: null,
+  section: null,
+  sectionName: null,
+  allData: {},
+  editingBlock: null,
+  pendingValue: null
+};
+
+// ========== Supabase ==========
+async function sbFetch(path, options = {}) {
+  const res = await fetch(`${SUPABASE_URL}${path}`, {
+    ...options,
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal',
+      ...options.headers
+    }
+  });
+  if (!res.ok) throw new Error('Supabase error: ' + res.status);
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+async function loadAllData() {
+  const data = await sbFetch('/rest/v1/site_contents?select=page,section,block_key,text_value,updated_at&order=updated_at.desc');
+  state.allData = {};
+  data.forEach(r => {
+    const k = `${r.page}.${r.section}.${r.block_key}`;
+    state.allData[k] = { text: r.text_value, updated_at: r.updated_at };
+  });
+  updateLastUpdated(data[0]?.updated_at);
+}
+
+function getValue(page, section, key) {
+  return state.allData[`${page}.${section}.${key}`]?.text || '';
+}
+
+async function updateValue(page, section, key, value) {
+  await sbFetch(
+    `/rest/v1/site_contents?page=eq.${page}&section=eq.${section}&block_key=eq.${key}`,
+    { method: 'PATCH', body: JSON.stringify({ text_value: value, updated_at: new Date().toISOString() }) }
+  );
+  state.allData[`${page}.${section}.${key}`] = { text: value, updated_at: new Date().toISOString() };
+}
+
+// ========== ナビゲーション ==========
+function selectPage(pageId, pageName) {
+  state.page = pageId;
+  state.pageName = pageName;
+  updateBreadcrumb();
+  showView('sections');
+  renderSections();
+}
+
+function selectSection(sectionId, sectionName) {
+  state.section = sectionId;
+  state.sectionName = sectionName;
+  updateBreadcrumb();
+  showView('blocks');
+  renderBlocks();
+}
+
+function goBack(level) {
+  if (level === 'pages') {
+    state.page = null; state.section = null;
+    showView('pages');
+  } else if (level === 'sections') {
+    state.section = null;
+    showView('sections');
+    renderSections();
+  }
+  updateBreadcrumb();
+}
+
+function showView(name) {
+  ['pages','sections','blocks'].forEach(v => {
+    document.getElementById(`view-${v}`).style.display = v === name ? 'block' : 'none';
+  });
+}
+
+function updateBreadcrumb() {
+  const bc = document.getElementById('breadcrumb');
+  let html = `<span class="breadcrumb-item ${!state.page ? 'current' : ''}" onclick="goBack('pages')">ページ選択</span>`;
+  if (state.page) {
+    html += `<span class="breadcrumb-sep">›</span>`;
+    html += `<span class="breadcrumb-item ${!state.section ? 'current' : ''}" onclick="goBack('sections')">${state.pageName}</span>`;
+  }
+  if (state.section) {
+    html += `<span class="breadcrumb-sep">›</span>`;
+    html += `<span class="breadcrumb-item current">${state.sectionName}</span>`;
+  }
+  bc.innerHTML = html;
+}
+
+// ========== レンダリング ==========
+function renderSections() {
+  const sections = SECTIONS[state.page] || [];
+  const label = document.getElementById('sections-label');
+  label.textContent = `${state.pageName} — セクション選択`;
+  const list = document.getElementById('section-list');
+  list.innerHTML = sections.map(s => `
+    <div class="section-item" onclick="selectSection('${s.id}','${s.name}')">
+      <div class="section-item-left">
+        <div class="section-icon">${s.icon}</div>
+        <div>
+          <div class="section-name">${s.name}</div>
+          <div class="section-desc">${s.desc}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="section-badge">${s.blocks.length}</span>
+        <span class="section-arrow">›</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderBlocks() {
+  const section = SECTIONS[state.page]?.find(s => s.id === state.section);
+  if (!section) return;
+  document.getElementById('blocks-label').textContent = `${state.pageName} › ${section.name}`;
+  const list = document.getElementById('block-list');
+  list.innerHTML = section.blocks.map(b => {
+    const current = getValue(state.page, state.section, b.key);
+    const isEmpty = !current;
+    return `
+      <div class="block-card">
+        <div class="block-card-head">
+          <span class="block-type">${b.label}</span>
+          <span class="block-type-badge ${b.type}">${b.type === 'text' ? 'テキスト' : '画像'}</span>
+        </div>
+        <div class="block-content">
+          <div class="block-current ${isEmpty ? 'empty' : ''}">${isEmpty ? '（未設定）' : escHtml(current)}</div>
+          <div class="block-actions">
+            <button class="btn-edit" onclick="openEdit('${b.key}','${b.label}')">
+              ✏️ 編集する
+            </button>
+            <button class="btn-ai" onclick="openEdit('${b.key}','${b.label}',true)">
+              ✦ クロに相談
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ========== 編集モーダル ==========
+function openEdit(blockKey, blockLabel, focusAI = false) {
+  state.editingBlock = blockKey;
+  const current = getValue(state.page, state.section, blockKey);
+  document.getElementById('modal-title').textContent = blockLabel;
+  document.getElementById('modal-subtitle').textContent = `${state.pageName} › ${state.sectionName}`;
+  document.getElementById('editTextarea').value = current;
+  document.getElementById('aiChat').innerHTML = `<div class="ai-msg assistant">「${blockLabel}」について何でも相談してください！現在の内容をベースに改善案を提案することもできます。</div>`;
+  hideApprove();
+  document.getElementById('editModal').classList.add('open');
+  if (focusAI) {
+    setTimeout(() => document.getElementById('aiInput').focus(), 400);
+  } else {
+    setTimeout(() => document.getElementById('editTextarea').focus(), 400);
+  }
+
+  // テキスト変更で承認エリア更新
+  document.getElementById('editTextarea').oninput = function() {
+    state.pendingValue = this.value;
+    if (this.value !== current) {
+      showApprove(this.value);
+    } else {
+      hideApprove();
+    }
+  };
+}
+
+function closeModal() {
+  document.getElementById('editModal').classList.remove('open');
+  state.editingBlock = null;
+  state.pendingValue = null;
+}
+
+// モーダル外クリックで閉じる
+document.getElementById('editModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ========== 承認 ==========
+function showApprove(value) {
+  const area = document.getElementById('approveArea');
+  document.getElementById('approvePreview').textContent = value.length > 80 ? value.slice(0,80) + '...' : value;
+  area.style.display = 'block';
+}
+
+function hideApprove() {
+  document.getElementById('approveArea').style.display = 'none';
+}
+
+async function approveChange() {
+  const value = state.pendingValue || document.getElementById('editTextarea').value;
+  if (!value || !state.editingBlock) return;
+  const btn = document.getElementById('approveBtn');
+  btn.disabled = true;
+  btn.textContent = '反映中...';
+  try {
+    await updateValue(state.page, state.section, state.editingBlock, value);
+    closeModal();
+    renderBlocks();
+    showToast('✓ サイトに反映しました！', 'success');
+  } catch(e) {
+    showToast('エラーが発生しました', '');
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '✓ 承認してサイトに反映';
+  }
+}
+
+// ========== Claude AI ==========
+async function sendAI() {
+  const input = document.getElementById('aiInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  const current = document.getElementById('editTextarea').value;
+  const chat = document.getElementById('aiChat');
+  const btn = document.getElementById('aiSendBtn');
+  input.value = '';
+  btn.disabled = true;
+  // ユーザーメッセージ表示
+  chat.innerHTML += `<div class="ai-msg user">👤 ${escHtml(msg)}</div>`;
+  chat.innerHTML += `<div class="ai-msg loading" id="ai-loading">✦ クロが考えています...</div>`;
+  chat.scrollTop = chat.scrollHeight;
+  try {
+    const res = await fetch(CLAUDE_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: `あなたは沖縄の鉄工業「琉球鉄工株式会社」のホームページのCMS管理画面に組み込まれたアシスタントです。
+ユーザーの指示に従って、ホームページの${state.sectionName}セクションの「${state.editingBlock}」ブロックのテキストを改善・生成してください。
+現在のテキスト: 「${current}」
+返答は改善案のテキストのみを返してください。説明や前置きは不要です。30文字〜150文字程度で簡潔に。`,
+        messages: [{ role: 'user', content: msg }]
+      })
+    });
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || '申し訳ありません、エラーが発生しました。';
+    document.getElementById('ai-loading')?.remove();
+    chat.innerHTML += `<div class="ai-msg assistant">✦ ${escHtml(reply)}</div>`;
+    chat.scrollTop = chat.scrollHeight;
+    // 提案をテキストエリアに反映
+    document.getElementById('editTextarea').value = reply;
+    state.pendingValue = reply;
+    showApprove(reply);
+  } catch(e) {
+    document.getElementById('ai-loading')?.remove();
+    chat.innerHTML += `<div class="ai-msg assistant">エラーが発生しました。もう一度お試しください。</div>`;
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ========== トースト ==========
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type}`;
+  setTimeout(() => t.classList.add('show'), 10);
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ========== ユーティリティ ==========
+function updateLastUpdated(ts) {
+  if (!ts) return;
+  const d = new Date(ts);
+  document.getElementById('last-updated').textContent = `最終更新: ${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+// ========== 初期化 ==========
+async function init() {
+  try {
+    await loadAllData();
+  } catch(e) {
+    console.error('Init error:', e);
+    showToast('データの読み込みに失敗しました', '');
+  } finally {
+    document.getElementById('loadingScreen').classList.add('hide');
+  }
+}
+
+init();
+</script>
+</body>
+</html>
