@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>琉球鉄工株式会社</title>
+<title>金秀鉄工株式会社</title>
+<meta property="og:title" content="金秀鉄工株式会社">
+<meta property="og:description" content="沖縄のインフラを支える鉄工技術。橋梁・鉄骨・鋼管杭工事のことなら金秀鉄工へ。">
+<meta property="og:type" content="website">
+<meta name="description" content="沖縄のインフラを支える鉄工技術。橋梁・鉄骨・鋼管杭工事のことなら金秀鉄工へ。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@600;700&display=swap" rel="stylesheet">
 <style>
@@ -28,8 +32,11 @@ nav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);background:var(--whi
 .nav-tel small{display:block;font-size:10px;color:var(--gray-mid);font-weight:400;text-align:center}
 .hamburger{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:4px}
 .hamburger span{display:block;width:24px;height:2px;background:var(--black)}
-.mobile-menu{display:none;position:fixed;top:var(--nav-h);left:0;right:0;background:var(--white);border-bottom:3px solid var(--red);z-index:999;box-shadow:0 4px 16px rgba(0,0,0,0.1)}
+.mobile-menu{display:none;position:fixed;top:var(--nav-h);left:0;right:0;background:var(--white);border-bottom:3px solid var(--red);z-index:999;box-shadow:0 4px 16px rgba(0,0,0,0.15);max-height:calc(100vh - var(--nav-h));overflow-y:auto}
 .mobile-menu.open{display:block}
+.mobile-menu button{display:block;width:100%;padding:16px 24px;font-size:16px;font-weight:700;color:var(--gray-dark);text-align:left;background:none;border:none;border-bottom:1px solid #eee;cursor:pointer;font-family:'Noto Sans JP',sans-serif;letter-spacing:0.03em}
+.mobile-menu button:last-child{border-bottom:none}
+.mobile-menu button.active{color:var(--red);background:rgba(200,0,30,0.03)}
 .mobile-menu button{display:block;width:100%;padding:14px 24px;font-size:15px;font-weight:700;color:var(--gray-dark);text-align:left;background:none;border:none;border-bottom:1px solid #eee;cursor:pointer;font-family:'Noto Sans JP',sans-serif}
 .mobile-menu button.active{color:var(--red)}
 .page{display:none;margin-top:var(--nav-h)}
@@ -175,8 +182,8 @@ footer{background:var(--black);color:rgba(255,255,255,0.6);padding:48px 0 24px}
   <div class="logo" onclick="showPage('top')">
     <div class="logo-mark"><span>R</span></div>
     <div class="logo-text">
-      <span id="nav-name">琉球鉄工株式会社</span>
-      <small>RYUKYU TEKKO CO.,LTD.</small>
+      <span id="nav-name">金秀鉄工株式会社</span>
+      <small>KANEHIDE TEKKO CO.,LTD.</small>
     </div>
   </div>
   <ul class="nav-links">
@@ -201,7 +208,7 @@ footer{background:var(--black);color:rgba(255,255,255,0.6);padding:48px 0 24px}
     <video id="hero-video" autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.45;display:none;z-index:0"></video>
     <div class="hero-slash"></div>
     <div class="hero-content">
-      <div class="hero-eyebrow">RYUKYU TEKKO CO., LTD.</div>
+      <div class="hero-eyebrow">KANEHIDE TEKKO CO., LTD.</div>
       <h1 class="hero-title" id="hero-title">読み込み中...</h1>
       <p class="hero-sub" id="hero-subtitle"></p>
       <button class="btn-red" onclick="showPage('company')">会社を知る</button>
@@ -356,7 +363,7 @@ footer{background:var(--black);color:rgba(255,255,255,0.6);padding:48px 0 24px}
   <div class="ft-inner">
     <div class="ft-top">
       <div>
-        <div class="ft-logo" id="ft-name">琉球鉄工株式会社</div>
+        <div class="ft-logo" id="ft-name">金秀鉄工株式会社</div>
         <div class="ft-addr" id="ft-addr">〒901-2224 沖縄県宜野湾市</div>
       </div>
       <nav class="ft-nav">
