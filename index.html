@@ -32,17 +32,15 @@ nav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);background:var(--whi
 .nav-tel small{display:block;font-size:10px;color:var(--gray-mid);font-weight:400;text-align:center}
 .hamburger{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:4px}
 .hamburger span{display:block;width:24px;height:2px;background:var(--black)}
-.mobile-menu{display:none;position:fixed;top:var(--nav-h);left:0;right:0;background:var(--white);border-bottom:3px solid var(--red);z-index:999;box-shadow:0 4px 16px rgba(0,0,0,0.15);max-height:calc(100vh - var(--nav-h));overflow-y:auto}
+.mobile-menu{display:none;position:fixed;top:var(--nav-h);left:0;right:0;background:var(--white);border-bottom:3px solid var(--red);z-index:999;box-shadow:0 4px 16px rgba(0,0,0,0.15)}
 .mobile-menu.open{display:block}
 .mobile-menu button{display:block;width:100%;padding:16px 24px;font-size:16px;font-weight:700;color:var(--gray-dark);text-align:left;background:none;border:none;border-bottom:1px solid #eee;cursor:pointer;font-family:'Noto Sans JP',sans-serif;letter-spacing:0.03em}
 .mobile-menu button:last-child{border-bottom:none}
 .mobile-menu button.active{color:var(--red);background:rgba(200,0,30,0.03)}
-.mobile-menu button{display:block;width:100%;padding:14px 24px;font-size:15px;font-weight:700;color:var(--gray-dark);text-align:left;background:none;border:none;border-bottom:1px solid #eee;cursor:pointer;font-family:'Noto Sans JP',sans-serif}
-.mobile-menu button.active{color:var(--red)}
 .page{display:none;margin-top:var(--nav-h)}
 .page.active{display:block}
 .hero{position:relative;height:calc(100vh - var(--nav-h));min-height:500px;max-height:800px;background:var(--black);overflow:hidden;display:flex;align-items:center}
-.hero-bg{position:absolute;inset:0;background:linear-gradient(135deg,rgba(200,0,30,0.85) 0%,rgba(0,0,0,0.3) 55%),repeating-linear-gradient(-45deg,transparent,transparent 40px,rgba(255,255,255,0.02) 40px,rgba(255,255,255,0.02) 41px)}
+.hero-bg{position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,0,0,0.75) 0%,rgba(0,0,0,0.4) 55%),repeating-linear-gradient(-45deg,transparent,transparent 40px,rgba(255,255,255,0.02) 40px,rgba(255,255,255,0.02) 41px)}
 .hero-slash{position:absolute;top:-10%;right:15%;width:6px;height:130%;background:rgba(255,255,255,0.15);transform:rotate(-15deg)}
 .hero-content{position:relative;z-index:2;padding:0 48px;max-width:800px}
 .hero-eyebrow{font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:0.25em;color:rgba(255,255,255,0.7);text-transform:uppercase;margin-bottom:20px;display:flex;align-items:center;gap:12px}
@@ -366,10 +364,10 @@ footer{background:var(--black);color:rgba(255,255,255,0.6);padding:48px 0 24px}
         <div class="ft-logo" id="ft-name">金秀鉄工株式会社</div>
         <div class="ft-addr" id="ft-addr">〒901-2224 沖縄県宜野湾市</div>
       </div>
-      <nav class="ft-nav">
+      <div class="ft-nav">
         <div class="ft-nav-col"><h4>MENU</h4><button onclick="showPage('top')">トップ</button><button onclick="showPage('company')">会社概要</button><button onclick="showPage('recruit')">採用情報</button></div>
         <div class="ft-nav-col"><h4>CONTACT</h4><button>お問い合わせ</button><button>アクセスマップ</button></div>
-      </nav>
+      </div>
     </div>
     <div class="ft-bottom">
       <div class="ft-tel"><small>お電話でのお問い合わせ</small><span id="ft-tel">098-XXX-XXXX</span></div>
@@ -493,6 +491,9 @@ document.addEventListener('click', e => {
   const h = document.querySelector('.hamburger');
   if (!m.contains(e.target) && !h.contains(e.target)) m.classList.remove('open');
 });
+
+// ページ読み込み時にメニューを閉じる
+document.getElementById('mobileMenu').classList.remove('open');
 
 load();
 </script>
