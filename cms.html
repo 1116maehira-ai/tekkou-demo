@@ -519,7 +519,8 @@ const SECTIONS = {
     { id: 'hero', name: 'ヒーロー', icon: '🎯', desc: 'メインビジュアル・キャッチコピー',
       blocks: [
         { key: 'title', label: 'キャッチコピー', type: 'text' },
-        { key: 'subtitle', label: 'サブテキスト', type: 'text' }
+        { key: 'subtitle', label: 'サブテキスト', type: 'text' },
+        { key: 'bg_video', label: '背景動画', type: 'video' }
       ]
     },
     { id: 'strengths', name: '選ばれる理由', icon: '💪', desc: '3つの強みカード',
@@ -529,7 +530,15 @@ const SECTIONS = {
         { key: 'card2_title', label: '強み②タイトル', type: 'text' },
         { key: 'card2_body', label: '強み②本文', type: 'text' },
         { key: 'card3_title', label: '強み③タイトル', type: 'text' },
-        { key: 'card3_body', label: '強み③本文', type: 'text' }
+        { key: 'card3_body', label: '強み③本文', type: 'text' },
+        { key: 'bg_video', label: '背景動画（透明度30%）', type: 'video' }
+      ]
+    },
+    { id: 'works', name: '実績写真', icon: '🏗️', desc: '実績セクションの3枚の写真',
+      blocks: [
+        { key: 'image1', label: '実績写真①', type: 'image' },
+        { key: 'image2', label: '実績写真②', type: 'image' },
+        { key: 'image3', label: '実績写真③', type: 'image' }
       ]
     },
     { id: 'message', name: '代表メッセージ', icon: '💬', desc: '代表からのメッセージ',
@@ -607,17 +616,61 @@ async function sbFetch(path, options = {}) {
 }
 
 async function loadAllData() {
-  const data = await sbFetch('/rest/v1/site_contents?select=page,section,block_key,text_value,updated_at&order=updated_at.desc');
+  const data = await sbFetch('/rest/v1/site_contents?select=page,section,block_key,text_value,media_url,updated_at&order=updated_at.desc');
   state.allData = {};
   data.forEach(r => {
     const k = `${r.page}.${r.section}.${r.block_key}`;
-    state.allData[k] = { text: r.text_value, updated_at: r.updated_at };
+    state.allData[k] = { text: r.text_value, media: r.media_url, updated_at: r.updated_at };
   });
   updateLastUpdated(data[0]?.updated_at);
 }
 
 function getValue(page, section, key) {
   return state.allData[`${page}.${section}.${key}`]?.text || '';
+}
+
+function getMediaValue(page, section, key) {
+  return state.allData[`${page}.${section}.${key}`]?.media || '';
+}
+
+async function uploadMedia(event, blockKey, mediaType) {
+  const file = event.target.files[0];
+  if (!file) return;
+  showToast('📤 アップロード中...', '');
+  try {
+    const ext = file.name.split('.').pop();
+    const fileName = `${state.page}/${state.section}/${blockKey}_${Date.now()}.${ext}`;
+    // Supabase Storageにアップロード
+    const uploadRes = await fetch(
+      `${SUPABASE_URL}/storage/v1/object/site-media/${fileName}`,
+      {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY,
+          'Content-Type': file.type,
+          'x-upsert': 'true'
+        },
+        body: file
+      }
+    );
+    if (!uploadRes.ok) throw new Error('Upload failed: ' + uploadRes.status);
+    // 公開URLを生成
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/site-media/${fileName}`;
+    // DBのmedia_urlを更新
+    await sbFetch(
+      `/rest/v1/site_contents?page=eq.${state.page}&section=eq.${state.section}&block_key=eq.${blockKey}`,
+      { method: 'PATCH', body: JSON.stringify({ media_url: publicUrl, updated_at: new Date().toISOString() }) }
+    );
+    // ローカルのstateも更新
+    const k = `${state.page}.${state.section}.${blockKey}`;
+    state.allData[k] = { ...state.allData[k], media: publicUrl };
+    renderBlocks();
+    showToast('✓ アップロード完了！サイトに反映されました', 'success');
+  } catch(e) {
+    console.error(e);
+    showToast('エラーが発生しました', '');
+  }
 }
 
 async function updateValue(page, section, key, value) {
@@ -707,22 +760,34 @@ function renderBlocks() {
   const list = document.getElementById('block-list');
   list.innerHTML = section.blocks.map(b => {
     const current = getValue(state.page, state.section, b.key);
-    const isEmpty = !current;
+    const currentMedia = getMediaValue(state.page, state.section, b.key);
+    const isMedia = b.type === 'image' || b.type === 'video';
+    const isEmpty = isMedia ? !currentMedia : !current;
+    const badgeLabel = b.type === 'text' ? 'テキスト' : b.type === 'video' ? '動画' : '画像';
+    const mediaPreview = isMedia && currentMedia ? (
+      b.type === 'video'
+        ? `<video src="${currentMedia}" style="width:100%;max-height:120px;object-fit:cover;border-radius:6px;margin-bottom:10px" muted playsinline></video>`
+        : `<img src="${currentMedia}" style="width:100%;max-height:120px;object-fit:cover;border-radius:6px;margin-bottom:10px">`
+    ) : '';
     return `
       <div class="block-card">
         <div class="block-card-head">
           <span class="block-type">${b.label}</span>
-          <span class="block-type-badge ${b.type}">${b.type === 'text' ? 'テキスト' : '画像'}</span>
+          <span class="block-type-badge ${b.type === 'text' ? 'text' : 'image'}">${badgeLabel}</span>
         </div>
         <div class="block-content">
-          <div class="block-current ${isEmpty ? 'empty' : ''}">${isEmpty ? '（未設定）' : escHtml(current)}</div>
+          ${mediaPreview}
+          <div class="block-current ${isEmpty ? 'empty' : ''}">${isEmpty ? '（未設定）' : isMedia ? '設定済み ✓' : escHtml(current)}</div>
           <div class="block-actions">
-            <button class="btn-edit" onclick="openEdit('${b.key}','${b.label}')">
-              ✏️ 編集する
-            </button>
-            <button class="btn-ai" onclick="openEdit('${b.key}','${b.label}',true)">
-              ✦ クロに相談
-            </button>
+            ${isMedia ? `
+              <label class="btn-edit" style="cursor:pointer">
+                📁 ファイルを選択
+                <input type="file" accept="${b.type === 'video' ? 'video/*' : 'image/*'}" style="display:none" onchange="uploadMedia(event,'${b.key}','${b.type}')">
+              </label>
+            ` : `
+              <button class="btn-edit" onclick="openEdit('${b.key}','${b.label}')">✏️ 編集する</button>
+              <button class="btn-ai" onclick="openEdit('${b.key}','${b.label}',true)">✦ クロに相談</button>
+            `}
           </div>
         </div>
       </div>

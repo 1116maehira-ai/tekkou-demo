@@ -198,6 +198,7 @@ footer{background:var(--black);color:rgba(255,255,255,0.6);padding:48px 0 24px}
 <div id="page-top" class="page active">
   <section class="hero">
     <div class="hero-bg"></div>
+    <video id="hero-video" autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.45;display:none;z-index:0"></video>
     <div class="hero-slash"></div>
     <div class="hero-content">
       <div class="hero-eyebrow">RYUKYU TEKKO CO., LTD.</div>
@@ -209,8 +210,9 @@ footer{background:var(--black);color:rgba(255,255,255,0.6);padding:48px 0 24px}
     <div class="hero-scroll">SCROLL</div>
   </section>
 
-  <section class="strengths">
-    <div class="inner">
+  <section class="strengths" style="position:relative;overflow:hidden">
+    <video id="strengths-video" autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.3;display:none;z-index:0"></video>
+    <div class="inner" style="position:relative;z-index:1">
       <div class="sec-head">
         <div class="sec-en">OUR STRENGTHS</div>
         <h2 class="sec-title">私たちが<span>選ばれる</span>理由</h2>
@@ -228,9 +230,21 @@ footer{background:var(--black);color:rgba(255,255,255,0.6);padding:48px 0 24px}
       <div class="sec-head"><div class="sec-en">OUR WORKS</div><h2 class="sec-title"><span>実績</span>紹介</h2></div>
     </div>
     <div class="works-grid">
-      <div class="work-item"><svg class="work-ph" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="m3 9 4-4 4 4 4-4 4 4"/></svg><div class="work-label"><h3>那覇市内 歩道橋改修工事</h3><span>BRIDGE WORK</span></div></div>
-      <div class="work-item" style="background:#0d1f2d"><svg class="work-ph" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="m3 9 4-4 4 4 4-4 4 4"/></svg><div class="work-label"><h3>大型商業施設 鉄骨工事</h3><span>STRUCTURAL STEEL</span></div></div>
-      <div class="work-item" style="background:#1a0a0a"><svg class="work-ph" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="m3 9 4-4 4 4 4-4 4 4"/></svg><div class="work-label"><h3>港湾施設 鋼管杭打設</h3><span>STEEL PIPE PILE</span></div></div>
+      <div class="work-item" id="work-item-1" style="background:#1a1a2e">
+        <svg class="work-ph" id="work-ph-1" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="m3 9 4-4 4 4 4-4 4 4"/></svg>
+        <img id="work-img-1" src="" alt="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.8">
+        <div class="work-label"><h3 id="work-title-1">那覇市内 歩道橋改修工事</h3><span>BRIDGE WORK</span></div>
+      </div>
+      <div class="work-item" id="work-item-2" style="background:#0d1f2d">
+        <svg class="work-ph" id="work-ph-2" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="m3 9 4-4 4 4 4-4 4 4"/></svg>
+        <img id="work-img-2" src="" alt="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.8">
+        <div class="work-label"><h3 id="work-title-2">大型商業施設 鉄骨工事</h3><span>STRUCTURAL STEEL</span></div>
+      </div>
+      <div class="work-item" id="work-item-3" style="background:#1a0a0a">
+        <svg class="work-ph" id="work-ph-3" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="m3 9 4-4 4 4 4-4 4 4"/></svg>
+        <img id="work-img-3" src="" alt="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.8">
+        <div class="work-label"><h3 id="work-title-3">港湾施設 鋼管杭打設</h3><span>STEEL PIPE PILE</span></div>
+      </div>
     </div>
     <div style="text-align:center;margin-top:32px"><button class="btn-red">実績一覧を見る</button></div>
   </section>
@@ -369,7 +383,7 @@ function set(id, val) {
 async function load() {
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/site_contents?is_published=eq.true&select=page,section,block_key,text_value`,
+      `${SUPABASE_URL}/rest/v1/site_contents?is_published=eq.true&select=page,section,block_key,text_value,media_url`,
       {
         headers: {
           'apikey': SUPABASE_KEY,
@@ -380,43 +394,69 @@ async function load() {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     const m = {};
-    data.forEach(r => { m[`${r.page}.${r.section}.${r.block_key}`] = r.text_value; });
+    data.forEach(r => { m[`${r.page}.${r.section}.${r.block_key}`] = { text: r.text_value, image: r.media_url }; });
+    const getText = k => m[k]?.text || '';
+    const getMedia = k => m[k]?.image || '';
+
+    // ===== メディア処理 =====
+    // ヒーロー背景動画
+    const heroVideo = m['top.hero.bg_video'];
+    if (heroVideo?.image) {
+      const v = document.getElementById('hero-video');
+      v.src = heroVideo.image; v.style.display = 'block';
+    }
+    // STRENGTHSセクション背景動画
+    const strVideo = m['top.strengths.bg_video'];
+    if (strVideo?.image) {
+      const v = document.getElementById('strengths-video');
+      v.src = strVideo.image; v.style.display = 'block';
+    }
+    // 実績写真
+    [1,2,3].forEach(i => {
+      const w = m[`top.works.image${i}`];
+      if (w?.image) {
+        const img = document.getElementById(`work-img-${i}`);
+        const ph = document.getElementById(`work-ph-${i}`);
+        img.src = w.image; img.style.display = 'block';
+        if (ph) ph.style.display = 'none';
+      }
+    });
 
     // TOP
-    set('hero-title', m['top.hero.title']);
-    set('hero-subtitle', m['top.hero.subtitle']);
-    set('s1t', m['top.strengths.card1_title']);
-    set('s1b', m['top.strengths.card1_body']);
-    set('s2t', m['top.strengths.card2_title']);
-    set('s2b', m['top.strengths.card2_body']);
-    set('s3t', m['top.strengths.card3_title']);
-    set('s3b', m['top.strengths.card3_body']);
-    set('msg-quote', m['top.message.quote']);
-    set('msg-body', m['top.message.body']);
-    set('msg-ceo', m['top.message.ceo_name']);
+    set('hero-title', getText('top.hero.title'));
+    set('hero-subtitle', getText('top.hero.subtitle'));
+    set('s1t', getText('top.strengths.card1_title'));
+    set('s1b', getText('top.strengths.card1_body'));
+    set('s2t', getText('top.strengths.card2_title'));
+    set('s2b', getText('top.strengths.card2_body'));
+    set('s3t', getText('top.strengths.card3_title'));
+    set('s3b', getText('top.strengths.card3_body'));
+    set('msg-quote', getText('top.message.quote'));
+    set('msg-body', getText('top.message.body'));
+    set('msg-ceo', getText('top.message.ceo_name'));
 
     // COMPANY
-    const name = m['company.info.company_name'];
-    const tel = m['company.info.tel'];
-    const addr = m['company.info.address'];
-    set('co-intro-title', m['company.info.intro_title']);
-    set('co-intro-body', m['company.info.intro_body']);
+    const name = getText('company.info.company_name');
+    const tel = getText('company.info.tel');
+    const addr = getText('company.info.address');
+    set('co-intro-title', getText('company.info.intro_title'));
+    set('co-intro-body', getText('company.info.intro_body'));
     set('c-name', name);
-    set('c-est', m['company.info.established']);
-    set('c-ceo', m['company.info.ceo']);
+    set('c-est', getText('company.info.established'));
+    set('c-ceo', getText('company.info.ceo'));
     set('c-addr', addr);
     set('c-tel', tel);
-    set('c-biz', m['company.info.business']);
+    set('c-biz', getText('company.info.business'));
 
     // RECRUIT
-    set('rec-title', m['recruit.hero.title']);
-    set('rec-sub', m['recruit.hero.subtitle']);
-    set('j1t', m['recruit.job1.title']);
-    set('j1b', m['recruit.job1.body']);
-    set('j1s', m['recruit.job1.salary']);
-    set('j2t', m['recruit.job2.title']);
-    set('j2b', m['recruit.job2.body']);
-    set('j2s', m['recruit.job2.salary']);
+    set('rec-title', getText('recruit.hero.title'));
+    set('rec-sub', getText('recruit.hero.subtitle'));
+    set('j1t', getText('recruit.job1.title'));
+    set('j1b', getText('recruit.job1.body'));
+    set('j1s', getText('recruit.job1.salary'));
+    set('j2t', getText('recruit.job2.title'));
+    set('j2b', getText('recruit.job2.body'));
+    set('j2s', getText('recruit.job2.salary'));
 
     // NAV/FOOTER
     if (name) { set('nav-name', name); set('ft-name', name); set('ft-name2', name); }
